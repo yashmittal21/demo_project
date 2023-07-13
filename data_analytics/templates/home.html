@@ -1,0 +1,92 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+  <title>Assigment</title>
+</head>
+<body style="margin:20px auto">
+  <div class="conatiner" style="text-align: center;">
+    <h2 style="margin-bottom: 50px;">Add File</h2>
+    <span style="display: flex;margin-left:500px">
+      <input type="file" id="fileUpload"  accept=".csv"/>
+      <button class="btn btn-success" onclick="Upload()">Upload</button>
+    </span>
+    <h2 align="right"><a href="{% url 'logout' %}">Logout</a></h2>
+  </div>
+  <br/>
+
+  <hr />
+  <br/>
+  <link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+  <script type="text/javascript">
+    function Upload() {
+        var fileUpload = document.getElementById("fileUpload");
+        var fullpath = fileUpload.value.toLowerCase();
+        console.log(fileUpload.value)
+        var file_name = fullpath.replace(/^.*[\\\/]/, '')
+        file_name = file_name.slice(0,-4)
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            
+          var rows = e.target.result.split("\n");
+          var column_name=[]
+          var cells = rows[0].split(",");
+          for(var i=0 ; i < cells.length - 1  ; i++){
+            column_name.push(cells[i])
+          }
+          var last_column = cells[cells.length - 1];
+          last_column=last_column.slice(0,-1)//"\n will append with last cell so deal with it seprately"
+          column_name.push(last_column)
+          var file_data=[]
+              
+          for (var i = 1; i < rows.length; i++) {
+              var obj={};
+              var cells = rows[i].split(",");
+              if (cells.length > 1) {
+                  
+                  for (var j = 0; j < cells.length - 1; j++) {
+                    obj[column_name[j]]=cells[j];
+                  }
+                  var last_value = cells[cells.length - 1];
+                  last_value = last_value.slice(0,-1)
+                  obj[last_column]=last_value
+              }
+              file_data.push(obj)
+          }
+
+          var final_data={}
+          final_data["file_data"] = file_data
+          final_data["file_name"] = file_name
+
+          //sending data in backend
+		  console.log(final_data)
+          let data = new FormData(); 
+
+          data.append("data", JSON.stringify(final_data))  //convert json objects into json string
+          data.append("csrfmiddlewaretoken", '{{csrf_token}}')
+          
+          axios.post('http://127.0.0.1:8000/post_data', data) 
+          .then(res =>{
+            console.log(res.data);
+            if(res.data.message=="ok"){
+              alert("Upload succesfully");
+              window.location.href="{% url 'home' %}"
+            }
+          }) 
+          .catch(errors => console.log(errors)) 			
+        }
+        reader.readAsText(fileUpload.files[0]); 
+    }
+  </script>
+  <div class="container" style="text-align: center;">
+    <h1 >All Files Uploaded on S3</h1>
+   
+      {% for l in file_list %}
+      <div style="font-size: large; margin-top:8px">
+	  	<a style="text-decoration: none;" href="{% url 'show' id=l.0 %}" target="_blank">{{l.1}}</a>
+      </div>
+      {% endfor %}
+  </div>
+
+</body>
+</html>
